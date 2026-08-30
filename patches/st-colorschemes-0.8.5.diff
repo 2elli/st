@@ -1,0 +1,261 @@
+From 9bfbafa1e98c13c039bea4790941e51b3a8054b4 Mon Sep 17 00:00:00 2001
+From: Max Schillinger <maxschillinger@web.de>
+Date: Thu, 23 Jun 2022 21:58:37 +0200
+Subject: [PATCH] Add multiple color schemes and key bindings to change them
+
+This commits adds these color schemes:
+
+- the default (dark) st color scheme
+- the default (dark) alacritty color scheme
+- One Half (dark & light)
+- Solarized (dark & light)
+- Gruvbox (dark & light)
+
+Select one with Alt+1..8.
+Select the next one with Alt+0.
+Select the previous one with Ctrl+Alt+0.
+---
+ config.def.h | 118 +++++++++++++++++++++++++++++++++++++--------------
+ st.c         |  22 ++++++++++
+ st.h         |   2 +
+ x.c          |  52 ++++++++++++++++++++++-
+ 4 files changed, 160 insertions(+), 34 deletions(-)
+
+Index: st/config.def.h
+===================================================================
+--- st.orig/config.def.h
++++ st/config.def.h
+@@ -93,46 +93,53 @@ char *termname = "st-256color";
+  */
+ unsigned int tabspaces = 8;
+ 
+-/* Terminal colors (16 first used in escape sequence) */
+-static const char *colorname[] = {
+-	/* 8 normal colors */
+-	"black",
+-	"red3",
+-	"green3",
+-	"yellow3",
+-	"blue2",
+-	"magenta3",
+-	"cyan3",
+-	"gray90",
+-
+-	/* 8 bright colors */
+-	"gray50",
+-	"red",
+-	"green",
+-	"yellow",
+-	"#5c5cff",
+-	"magenta",
+-	"cyan",
+-	"white",
+-
+-	[255] = 0,
+-
+-	/* more colors can be added after 255 to use with DefaultXX */
+-	"#cccccc",
+-	"#555555",
+-	"gray90", /* default foreground colour */
+-	"black", /* default background colour */
++typedef struct {
++	const char* const colors[258]; /* terminal colors */
++	unsigned int fg;               /* foreground */
++	unsigned int bg;               /* background */
++	unsigned int cs;               /* cursor */
++	unsigned int rcs;              /* reverse cursor */
++} ColorScheme;
++/*
++ * Terminal colors (16 first used in escape sequence,
++ * 2 last for custom cursor color),
++ * foreground, background, cursor, reverse cursor
++ */
++static const ColorScheme schemes[] = {
++	// st (dark)
++	{{"black", "red3", "green3", "yellow3",
++	  "blue2", "magenta3", "cyan3", "gray90",
++	  "gray50", "red", "green", "yellow",
++	  "#5c5cff", "magenta", "cyan", "white",
++	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
++
++	// Alacritty (dark)
++	{{"#1d1f21", "#cc6666", "#b5bd68", "#f0c674",
++	  "#81a2be", "#b294bb", "#8abeb7", "#c5c8c6",
++	  "#666666", "#d54e53", "#b9ca4a", "#e7c547",
++	  "#7aa6da", "#c397d8", "#70c0b1", "#eaeaea",
++	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
++
++	// Solarized light
++	{{"#eee8d5", "#dc322f", "#859900", "#b58900",
++	  "#268bd2", "#d33682", "#2aa198", "#073642",
++	  "#fdf6e3", "#cb4b16", "#93a1a1", "#839496",
++	  "#657b83", "#6c71c4", "#586e75", "#002b36",
++	  [256]="#586e75", "#002b36"}, 12, 8, 256, 257},
++
+ };
+ 
++static const char * const * colorname;
++int colorscheme = 0;
+ 
+ /*
+  * Default colors (colorname index)
+  * foreground, background, cursor, reverse cursor
+  */
+-unsigned int defaultfg = 258;
+-unsigned int defaultbg = 259;
+-unsigned int defaultcs = 256;
+-static unsigned int defaultrcs = 257;
++unsigned int defaultfg;
++unsigned int defaultbg;
++unsigned int defaultcs;
++static unsigned int defaultrcs;
+ 
+ /*
+  * Default shape of cursor
+@@ -203,6 +210,9 @@ static Shortcut shortcuts[] = {
+ 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
+ 	{ ShiftMask,            XK_Page_Up,     kscrollup,      {.i = -1} },
+ 	{ ShiftMask,            XK_Page_Down,   kscrolldown,    {.i = -1} },
++	{ MODKEY,               XK_0,           nextscheme,     {.i = +1} },
++    { MODKEY|ControlMask,   XK_0,           nextscheme,     {.i = -1} },
++
+ };
+ 
+ /*
+Index: st/st.c
+===================================================================
+--- st.orig/st.c
++++ st/st.c
+@@ -2295,6 +2295,28 @@ tstrsequence(uchar c)
+ }
+ 
+ void
++tupdatebgcolor(int oldbg, int newbg)
++{
++	for (int y = 0; y < term.row; y++) {
++		for (int x = 0; x < term.col; x++) {
++			if (TLINE(y)[x].bg == oldbg)
++				TLINE(y)[x].bg = newbg;
++		}
++	}
++}
++
++void
++tupdatefgcolor(int oldfg, int newfg)
++{
++	for (int y = 0; y < term.row; y++) {
++		for (int x = 0; x < term.col; x++) {
++			if (TLINE(y)[x].fg == oldfg)
++				TLINE(y)[x].fg = newfg;
++		}
++	}
++}
++
++void
+ tcontrolcode(uchar ascii)
+ {
+ 	switch (ascii) {
+Index: st/st.h
+===================================================================
+--- st.orig/st.h
++++ st/st.h
+@@ -91,6 +91,8 @@ int tattrset(int);
+ void tnew(int, int);
+ void tresize(int, int);
+ void tsetdirtattr(int);
++void tupdatebgcolor(int, int);
++void tupdatefgcolor(int, int);
+ void ttyhangup(void);
+ int ttynew(const char *, char *, const char *, char **);
+ size_t ttyread(void);
+Index: st/x.c
+===================================================================
+--- st.orig/x.c
++++ st/x.c
+@@ -61,6 +61,8 @@ static void zoomreset(const Arg *);
+ static void ttysend(const Arg *);
+ void kscrollup(const Arg *);
+ void kscrolldown(const Arg *);
++static void nextscheme(const Arg *);
++static void selectscheme(const Arg *);
+ 
+ /* config.h for applying patches and the configuration. */
+ #include "config.h"
+@@ -187,6 +189,7 @@ static void mousesel(XEvent *, int);
+ static void mousereport(XEvent *);
+ static char *kmap(KeySym, uint);
+ static int match(uint, uint);
++static void updatescheme(void);
+ 
+ static void run(void);
+ static void usage(void);
+@@ -803,7 +806,7 @@ xloadcols(void)
+ 		for (cp = dc.col; cp < &dc.col[dc.collen]; ++cp)
+ 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
+ 	} else {
+-		dc.collen = MAX(LEN(colorname), 256);
++		dc.collen = 258;
+ 		dc.col = xmalloc(dc.collen * sizeof(Color));
+ 	}
+ 
+@@ -2038,6 +2041,47 @@ usage(void)
+ 	    " [stty_args ...]\n", argv0, argv0);
+ }
+ 
++void
++nextscheme(const Arg *arg)
++{
++	colorscheme += arg->i;
++	if (colorscheme >= (int)LEN(schemes))
++		colorscheme = 0;
++	else if (colorscheme < 0)
++		colorscheme = LEN(schemes) - 1;
++	updatescheme();
++}
++
++void
++selectscheme(const Arg *arg)
++{
++	if (BETWEEN(arg->i, 0, LEN(schemes)-1)) {
++		colorscheme = arg->i;
++		updatescheme();
++	}
++}
++
++void
++updatescheme(void)
++{
++	int oldbg, oldfg;
++
++	oldbg = defaultbg;
++	oldfg = defaultfg;
++	colorname = schemes[colorscheme].colors;
++	defaultbg = schemes[colorscheme].bg;
++	defaultfg = schemes[colorscheme].fg;
++	defaultcs = schemes[colorscheme].cs;
++	defaultrcs = schemes[colorscheme].rcs;
++	xloadcols();
++	if (defaultbg != oldbg)
++		tupdatebgcolor(oldbg, defaultbg);
++	if (defaultfg != oldfg)
++		tupdatefgcolor(oldfg, defaultfg);
++	cresize(win.w, win.h);
++	redraw();
++}
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -2090,6 +2134,12 @@ main(int argc, char *argv[])
+ 	} ARGEND;
+ 
+ run:
++	colorname = schemes[colorscheme].colors;
++	defaultbg = schemes[colorscheme].bg;
++	defaultfg = schemes[colorscheme].fg;
++	defaultcs = schemes[colorscheme].cs;
++	defaultrcs = schemes[colorscheme].rcs;
++
+ 	if (argc > 0) /* eat all remaining arguments */
+ 		opt_cmd = argv;
+ 
