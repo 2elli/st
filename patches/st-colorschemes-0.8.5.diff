@@ -15,17 +15,35 @@ Select one with Alt+1..8.
 Select the next one with Alt+0.
 Select the previous one with Ctrl+Alt+0.
 ---
+
+From 9bfbafa1e98c13c039bea4790941e51b3a8054b4 Mon Sep 17 00:00:00 2001
+From: Max Schillinger <maxschillinger@web.de>
+Date: Thu, 23 Jun 2022 21:58:37 +0200
+Subject: [PATCH] Add multiple color schemes and key bindings to change them
+
+This commits adds these color schemes:
+
+- the default (dark) st color scheme
+- the default (dark) alacritty color scheme
+- One Half (dark & light)
+- Solarized (dark & light)
+- Gruvbox (dark & light)
+
+Select one with Alt+1..8.
+Select the next one with Alt+0.
+Select the previous one with Ctrl+Alt+0.
+---
  config.def.h | 118 +++++++++++++++++++++++++++++++++++++--------------
  st.c         |  22 ++++++++++
  st.h         |   2 +
  x.c          |  52 ++++++++++++++++++++++-
  4 files changed, 160 insertions(+), 34 deletions(-)
 
-Index: st/config.def.h
-===================================================================
---- st.orig/config.def.h
-+++ st/config.def.h
-@@ -93,46 +93,53 @@ char *termname = "st-256color";
+diff --git a/config.def.h b/config.def.h
+index 91ab8ca..38777fe 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -93,46 +93,87 @@ char *termname = "st-256color";
   */
  unsigned int tabspaces = 8;
  
@@ -85,6 +103,27 @@ Index: st/config.def.h
 +	  "#7aa6da", "#c397d8", "#70c0b1", "#eaeaea",
 +	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
 +
++	// One Half dark
++	{{"#282c34", "#e06c75", "#98c379", "#e5c07b",
++	  "#61afef", "#c678dd", "#56b6c2", "#dcdfe4",
++	  "#282c34", "#e06c75", "#98c379", "#e5c07b",
++	  "#61afef", "#c678dd", "#56b6c2", "#dcdfe4",
++	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
++
++	// One Half light
++	{{"#fafafa", "#e45649", "#50a14f", "#c18401",
++      "#0184bc", "#a626a4", "#0997b3", "#383a42",
++	  "#fafafa", "#e45649", "#50a14f", "#c18401",
++	  "#0184bc", "#a626a4", "#0997b3", "#383a42",
++	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
++
++	// Solarized dark
++	{{"#073642", "#dc322f", "#859900", "#b58900",
++	  "#268bd2", "#d33682", "#2aa198", "#eee8d5",
++	  "#002b36", "#cb4b16", "#586e75", "#657b83",
++	  "#839496", "#6c71c4", "#93a1a1", "#fdf6e3",
++	  [256]="#93a1a1", "#fdf6e3"}, 12, 8, 256, 257},
++
 +	// Solarized light
 +	{{"#eee8d5", "#dc322f", "#859900", "#b58900",
 +	  "#268bd2", "#d33682", "#2aa198", "#073642",
@@ -92,6 +131,19 @@ Index: st/config.def.h
 +	  "#657b83", "#6c71c4", "#586e75", "#002b36",
 +	  [256]="#586e75", "#002b36"}, 12, 8, 256, 257},
 +
++	// Gruvbox dark
++	{{"#282828", "#cc241d", "#98971a", "#d79921",
++	  "#458588", "#b16286", "#689d6a", "#a89984",
++	  "#928374", "#fb4934", "#b8bb26", "#fabd2f",
++	  "#83a598", "#d3869b", "#8ec07c", "#ebdbb2",
++	  [256]="#ebdbb2", "#555555"}, 15, 0, 256, 257},
++
++	// Gruvbox light
++	{{"#fbf1c7", "#cc241d", "#98971a", "#d79921",
++	  "#458588", "#b16286", "#689d6a", "#7c6f64",
++	  "#928374", "#9d0006", "#79740e", "#b57614",
++	  "#076678", "#8f3f71", "#427b58", "#3c3836",
++	  [256]="#3c3836", "#555555"}, 15, 0, 256, 257},
  };
  
 +static const char * const * colorname;
@@ -112,30 +164,39 @@ Index: st/config.def.h
  
  /*
   * Default shape of cursor
-@@ -203,6 +210,9 @@ static Shortcut shortcuts[] = {
+@@ -201,6 +242,17 @@ static Shortcut shortcuts[] = {
+ 	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
+ 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
  	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
- 	{ ShiftMask,            XK_Page_Up,     kscrollup,      {.i = -1} },
- 	{ ShiftMask,            XK_Page_Down,   kscrolldown,    {.i = -1} },
++	{ MODKEY,               XK_1,           selectscheme,   {.i =  0} },
++	{ MODKEY,               XK_2,           selectscheme,   {.i =  1} },
++	{ MODKEY,               XK_3,           selectscheme,   {.i =  2} },
++	{ MODKEY,               XK_4,           selectscheme,   {.i =  3} },
++	{ MODKEY,               XK_5,           selectscheme,   {.i =  4} },
++	{ MODKEY,               XK_6,           selectscheme,   {.i =  5} },
++	{ MODKEY,               XK_7,           selectscheme,   {.i =  6} },
++	{ MODKEY,               XK_8,           selectscheme,   {.i =  7} },
++	{ MODKEY,               XK_9,           selectscheme,   {.i =  8} },
 +	{ MODKEY,               XK_0,           nextscheme,     {.i = +1} },
-+    { MODKEY|ControlMask,   XK_0,           nextscheme,     {.i = -1} },
-+
++	{ MODKEY|ControlMask,   XK_0,           nextscheme,     {.i = -1} },
  };
  
  /*
-Index: st/st.c
-===================================================================
---- st.orig/st.c
-+++ st/st.c
-@@ -2295,6 +2295,28 @@ tstrsequence(uchar c)
+diff --git a/st.c b/st.c
+index 51049ba..3ffe333 100644
+--- a/st.c
++++ b/st.c
+@@ -2196,6 +2196,28 @@ tstrsequence(uchar c)
+ 	term.esc |= ESC_STR;
  }
  
- void
++void
 +tupdatebgcolor(int oldbg, int newbg)
 +{
 +	for (int y = 0; y < term.row; y++) {
 +		for (int x = 0; x < term.col; x++) {
-+			if (TLINE(y)[x].bg == oldbg)
-+				TLINE(y)[x].bg = newbg;
++			if (term.line[y][x].bg == oldbg)
++				term.line[y][x].bg = newbg;
 +		}
 +	}
 +}
@@ -145,21 +206,20 @@ Index: st/st.c
 +{
 +	for (int y = 0; y < term.row; y++) {
 +		for (int x = 0; x < term.col; x++) {
-+			if (TLINE(y)[x].fg == oldfg)
-+				TLINE(y)[x].fg = newfg;
++			if (term.line[y][x].fg == oldfg)
++				term.line[y][x].fg = newfg;
 +		}
 +	}
 +}
 +
-+void
+ void
  tcontrolcode(uchar ascii)
  {
- 	switch (ascii) {
-Index: st/st.h
-===================================================================
---- st.orig/st.h
-+++ st/st.h
-@@ -91,6 +91,8 @@ int tattrset(int);
+diff --git a/st.h b/st.h
+index 519b9bd..2700de5 100644
+--- a/st.h
++++ b/st.h
+@@ -90,6 +90,8 @@ int tattrset(int);
  void tnew(int, int);
  void tresize(int, int);
  void tsetdirtattr(int);
@@ -168,20 +228,20 @@ Index: st/st.h
  void ttyhangup(void);
  int ttynew(const char *, char *, const char *, char **);
  size_t ttyread(void);
-Index: st/x.c
-===================================================================
---- st.orig/x.c
-+++ st/x.c
-@@ -61,6 +61,8 @@ static void zoomreset(const Arg *);
+diff --git a/x.c b/x.c
+index 8a16faa..bc0a48c 100644
+--- a/x.c
++++ b/x.c
+@@ -59,6 +59,8 @@ static void zoom(const Arg *);
+ static void zoomabs(const Arg *);
+ static void zoomreset(const Arg *);
  static void ttysend(const Arg *);
- void kscrollup(const Arg *);
- void kscrolldown(const Arg *);
 +static void nextscheme(const Arg *);
 +static void selectscheme(const Arg *);
  
  /* config.h for applying patches and the configuration. */
  #include "config.h"
-@@ -187,6 +189,7 @@ static void mousesel(XEvent *, int);
+@@ -185,6 +187,7 @@ static void mousesel(XEvent *, int);
  static void mousereport(XEvent *);
  static char *kmap(KeySym, uint);
  static int match(uint, uint);
@@ -189,7 +249,7 @@ Index: st/x.c
  
  static void run(void);
  static void usage(void);
-@@ -803,7 +806,7 @@ xloadcols(void)
+@@ -785,7 +788,7 @@ xloadcols(void)
  		for (cp = dc.col; cp < &dc.col[dc.collen]; ++cp)
  			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
  	} else {
@@ -198,7 +258,7 @@ Index: st/x.c
  		dc.col = xmalloc(dc.collen * sizeof(Color));
  	}
  
-@@ -2038,6 +2041,47 @@ usage(void)
+@@ -2008,6 +2011,47 @@ usage(void)
  	    " [stty_args ...]\n", argv0, argv0);
  }
  
@@ -246,7 +306,7 @@ Index: st/x.c
  int
  main(int argc, char *argv[])
  {
-@@ -2090,6 +2134,12 @@ main(int argc, char *argv[])
+@@ -2060,6 +2104,12 @@ main(int argc, char *argv[])
  	} ARGEND;
  
  run:
@@ -259,3 +319,6 @@ Index: st/x.c
  	if (argc > 0) /* eat all remaining arguments */
  		opt_cmd = argv;
  
+-- 
+2.36.1
+

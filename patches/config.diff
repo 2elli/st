@@ -2,7 +2,7 @@ Index: st/config.h
 ===================================================================
 --- /dev/null
 +++ st/config.h
-@@ -0,0 +1,494 @@
+@@ -0,0 +1,491 @@
 +/* See LICENSE file for copyright and license details. */
 +
 +/*
@@ -221,11 +221,8 @@ Index: st/config.h
 +	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
 +	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
 +	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
-+	{ ShiftMask,            XK_Page_Up,     kscrollup,      {.i = -1} },
-+	{ ShiftMask,            XK_Page_Down,   kscrolldown,    {.i = -1} },
 +	{ MODKEY,               XK_0,           nextscheme,     {.i = +1} },
-+    { MODKEY|ControlMask,   XK_0,           nextscheme,     {.i = -1} },
-+
++	{ MODKEY|ControlMask,   XK_0,           nextscheme,     {.i = -1} },
 +};
 +
 +/*
