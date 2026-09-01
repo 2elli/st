@@ -111,19 +111,19 @@ Index: st/config.h
 + * foreground, background, cursor, reverse cursor
 + */
 +static const ColorScheme schemes[] = {
-+	// monochrome
-+    {{"#0A0A0A", "#939490", "#ffdfff", "#B6B8B3",
-+      "#727370", "#D1D1CB", "#636361", "#ffffff",
-+      "#2E2E2C", "#989995", "#636361", "#BBBDB8",
-+      "#777875", "#D6D6D0", "#696966", "#AFB0AB",
-+	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
-+
 +	// monochrome red
-+    {{"#0A0A0A", "#FF1211", "#ffdfff", "#B6B8B3",
++    {{"#000000", "#FF1211", "#ffdfff", "#B6B8B3",
 +      "#727370", "#D1D1CB", "#636361", "#ffffff",
 +      "#2E2E2C", "#FF0105", "#636361", "#BBBDB8",
 +      "#777875", "#D6D6D0", "#696966", "#AFB0AB",
-+	  [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
++	  [256]="#cccccc", "#555555" }, 7, 0, 256, 257},
++
++	// monochrome
++	  //  {{"#0A0A0A", "#939490", "#ffdfff", "#B6B8B3",
++	  //    "#727370", "#D1D1CB", "#636361", "#ffffff",
++	  //    "#2E2E2C", "#989995", "#636361", "#BBBDB8",
++	  //    "#777875", "#D6D6D0", "#696966", "#AFB0AB",
++	  // [256]="#cccccc", "#555555"}, 7, 0, 256, 257},
 +
 +	// st (dark)
 +	{{"black", "red3", "green3", "yellow3",
